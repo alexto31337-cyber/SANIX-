@@ -1,0 +1,320 @@
+import React, { useState, useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Wrench,
+  TrendingUp,
+  Gauge,
+  Activity,
+  Droplets,
+  Clock,
+  CheckCircle2,
+  Search,
+} from "lucide-react";
+
+// ─── Моковые данные ────────────────────────────────────────────────────────
+const gtmDynamics = [
+  { month: "Янв", "ГРП": 4, "КРС": 6 },
+  { month: "Фев", "ГРП": 6, "КРС": 5 },
+  { month: "Мар", "ГРП": 5, "КРС": 8 },
+  { month: "Апр", "ГРП": 9, "КРС": 7 },
+  { month: "Май", "ГРП": 8, "КРС": 10 },
+  { month: "Июн", "ГРП": 12, "КРС": 9 },
+];
+
+const wells = [
+  { id: "Скв-1024", status: "ГРП", pressure: 24.6, date: "02.06.2026" },
+  { id: "Скв-2087", status: "КРС", pressure: 19.3, date: "28.05.2026" },
+  { id: "Скв-3142", status: "Ожидание", pressure: 17.8, date: "15.05.2026" },
+  { id: "Скв-4519", status: "ГРП", pressure: 26.1, date: "04.06.2026" },
+  { id: "Скв-5630", status: "Ожидание", pressure: 16.5, date: "11.05.2026" },
+  { id: "Скв-6271", status: "КРС", pressure: 21.4, date: "31.05.2026" },
+  { id: "Скв-7384", status: "ГРП", pressure: 23.9, date: "01.06.2026" },
+];
+
+// ─── Конфигурация статусов ─────────────────────────────────────────────────
+const statusConfig = {
+  ГРП: {
+    label: "ГРП",
+    dot: "bg-emerald-400",
+    text: "text-emerald-300",
+    badge: "bg-emerald-400/10 border-emerald-400/30 text-emerald-300",
+    glow: "shadow-[0_0_8px_rgba(52,211,153,0.6)]",
+  },
+  КРС: {
+    label: "КРС",
+    dot: "bg-sky-400",
+    text: "text-sky-300",
+    badge: "bg-sky-400/10 border-sky-400/30 text-sky-300",
+    glow: "shadow-[0_0_8px_rgba(56,189,248,0.6)]",
+  },
+  Ожидание: {
+    label: "Ожидание",
+    dot: "bg-amber-400",
+    text: "text-amber-300",
+    badge: "bg-amber-400/10 border-amber-400/30 text-amber-300",
+    glow: "shadow-[0_0_8px_rgba(251,191,36,0.5)]",
+  },
+};
+
+const filters = ["Все", "ГРП", "КРС", "Ожидание"];
+
+// ─── KPI карточка ──────────────────────────────────────────────────────────
+function KpiCard({ icon: Icon, label, value, unit, accent, sub }) {
+  return (
+    <div className="group flex-1 rounded-xl border border-slate-700/60 bg-slate-800/40 p-4 transition-all duration-200 hover:border-slate-600 hover:bg-slate-800/70 hover:-translate-y-0.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+          {label}
+        </span>
+        <div
+          className={`rounded-lg p-2 transition-transform duration-200 group-hover:scale-110 ${accent}`}
+        >
+          <Icon size={18} strokeWidth={2} />
+        </div>
+      </div>
+      <div className="mt-3 flex items-baseline gap-1.5">
+        <span className="text-3xl font-bold text-slate-50">{value}</span>
+        <span className="text-sm font-medium text-slate-400">{unit}</span>
+      </div>
+      <span className="mt-1 block text-xs text-slate-500">{sub}</span>
+    </div>
+  );
+}
+
+// ─── Кастомный тултип для графика ──────────────────────────────────────────
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-slate-600 bg-slate-900/95 px-3 py-2 shadow-xl backdrop-blur">
+      <p className="mb-1 text-xs font-semibold text-slate-300">{label}</p>
+      {payload.map((p) => (
+        <p key={p.name} className="text-xs" style={{ color: p.color }}>
+          {p.name}: <span className="font-bold">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+// ─── Главный компонент ─────────────────────────────────────────────────────
+export default function FedorovskoyeDashboard() {
+  const [filter, setFilter] = useState("Все");
+
+  const filteredWells = useMemo(
+    () => (filter === "Все" ? wells : wells.filter((w) => w.status === filter)),
+    [filter]
+  );
+
+  const avgPressure = (
+    wells.reduce((s, w) => s + w.pressure, 0) / wells.length
+  ).toFixed(1);
+
+  return (
+    <div className="min-h-screen w-full bg-slate-900 p-4 font-sans text-slate-200 antialiased">
+      <div className="mx-auto max-w-7xl">
+        {/* Шапка */}
+        <header className="mb-4 flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-sky-500/15 p-2">
+              <Activity className="text-sky-400" size={22} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold leading-tight text-slate-50">
+                Фонд бездействующих скважин
+              </h1>
+              <p className="text-xs text-slate-400">
+                Федоровское месторождение · Мониторинг ГТМ
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <span className="text-xs font-medium text-emerald-300">
+              Данные актуальны
+            </span>
+          </div>
+        </header>
+
+        {/* KPI карточки */}
+        <section className="mb-4 flex flex-col gap-3 sm:flex-row">
+          <KpiCard
+            icon={Wrench}
+            label="Скважин в ремонте"
+            value="14"
+            unit="шт"
+            sub="из 47 в фонде"
+            accent="bg-sky-500/15 text-sky-400"
+          />
+          <KpiCard
+            icon={TrendingUp}
+            label="Ожидаемый прирост добычи"
+            value="+128"
+            unit="т/сут"
+            sub="после завершения ГТМ"
+            accent="bg-emerald-500/15 text-emerald-400"
+          />
+          <KpiCard
+            icon={Gauge}
+            label="Среднее пластовое давление"
+            value={avgPressure}
+            unit="МПа"
+            sub="по активному фонду"
+            accent="bg-indigo-500/15 text-indigo-400"
+          />
+        </section>
+
+        {/* Контент: график + таблица */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+          {/* График */}
+          <section className="lg:col-span-2 rounded-xl border border-slate-700/60 bg-slate-800/40 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Droplets size={16} className="text-sky-400" />
+              <h2 className="text-sm font-semibold text-slate-200">
+                Динамика проведения ГТМ
+              </h2>
+            </div>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart
+                data={gtmDynamics}
+                margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: "#475569" }} />
+                <Legend
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="ГРП"
+                  stroke="#34d399"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: "#34d399" }}
+                  activeDot={{ r: 5 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="КРС"
+                  stroke="#38bdf8"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: "#38bdf8" }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </section>
+
+          {/* Таблица */}
+          <section className="lg:col-span-3 rounded-xl border border-slate-700/60 bg-slate-800/40 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Search size={16} className="text-sky-400" />
+                <h2 className="text-sm font-semibold text-slate-200">
+                  Реестр скважин
+                </h2>
+                <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-xs text-slate-400">
+                  {filteredWells.length}
+                </span>
+              </div>
+              <div className="flex gap-1.5">
+                {filters.map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-all duration-150 hover:scale-105 ${
+                      filter === f
+                        ? "border-sky-400/50 bg-sky-400/15 text-sky-300"
+                        : "border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600 hover:text-slate-200"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-lg border border-slate-700/50">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-700/60 bg-slate-800/60 text-left text-xs uppercase tracking-wider text-slate-400">
+                    <th className="px-3 py-2 font-medium">Скважина</th>
+                    <th className="px-3 py-2 font-medium">Статус</th>
+                    <th className="px-3 py-2 font-medium text-right">Давление</th>
+                    <th className="px-3 py-2 font-medium text-right">Проверка</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWells.map((w) => {
+                    const s = statusConfig[w.status];
+                    return (
+                      <tr
+                        key={w.id}
+                        className="group cursor-pointer border-b border-slate-800/60 transition-colors duration-150 last:border-0 hover:bg-sky-400/5"
+                      >
+                        <td className="px-3 py-2.5 font-medium text-slate-200">
+                          <span className="transition-colors group-hover:text-sky-300">
+                            {w.id}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${s.badge}`}
+                          >
+                            <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${s.glow}`} />
+                            {s.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="font-semibold text-slate-100">
+                            {w.pressure.toFixed(1)}
+                          </span>
+                          <span className="ml-1 text-xs text-slate-500">МПа</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                            {w.status === "Ожидание" ? (
+                              <Clock size={12} className="text-amber-400" />
+                            ) : (
+                              <CheckCircle2 size={12} className="text-emerald-400" />
+                            )}
+                            {w.date}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <footer className="mt-4 text-center text-xs text-slate-600">
+          Система мониторинга ГТМ · Обновлено 06.06.2026
+        </footer>
+      </div>
+    </div>
+  );
+}
