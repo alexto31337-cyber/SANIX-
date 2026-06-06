@@ -5,13 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Мониторинг ГТМ · Федоровское месторождение</title>
 
-    <!-- CDN: всё подтягивается автоматически, установка не нужна -->
+    <!-- Tailwind (играющий CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-    <script crossorigin src="https://unpkg.com/lucide-react@0.395.0/dist/umd/lucide-react.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Babel: транспиляция JSX прямо в браузере -->
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+
+    <!-- Карта импортов: все зависимости тянутся с esm.sh (он сам решает их зависимости) -->
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react-dom": "https://esm.sh/react-dom@18.3.1",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+          "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
+          "lucide-react": "https://esm.sh/lucide-react@0.395.0?external=react"
+        }
+      }
+    </script>
 
     <style>
       html, body, #root { height: 100%; margin: 0; }
@@ -20,16 +32,17 @@
   <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-presets="react">
-      const { useState, useMemo } = React;
-      const {
+    <script type="text/babel" data-type="module" data-presets="react">
+      import React, { useState, useMemo } from "react";
+      import { createRoot } from "react-dom/client";
+      import {
         LineChart, Line, XAxis, YAxis, CartesianGrid,
         Tooltip, Legend, ResponsiveContainer,
-      } = Recharts;
-      const {
+      } from "recharts";
+      import {
         Wrench, TrendingUp, Gauge, Activity,
         Droplets, Clock, CheckCircle2, Search,
-      } = LucideReact;
+      } from "lucide-react";
 
       // ─── Моковые данные ───────────────────────────────────────────────
       const gtmDynamics = [
@@ -53,17 +66,17 @@
 
       const statusConfig = {
         "ГРП": {
-          label: "ГРП", dot: "bg-emerald-400", text: "text-emerald-300",
+          label: "ГРП", dot: "bg-emerald-400",
           badge: "bg-emerald-400/10 border-emerald-400/30 text-emerald-300",
           glow: "shadow-[0_0_8px_rgba(52,211,153,0.6)]",
         },
         "КРС": {
-          label: "КРС", dot: "bg-sky-400", text: "text-sky-300",
+          label: "КРС", dot: "bg-sky-400",
           badge: "bg-sky-400/10 border-sky-400/30 text-sky-300",
           glow: "shadow-[0_0_8px_rgba(56,189,248,0.6)]",
         },
         "Ожидание": {
-          label: "Ожидание", dot: "bg-amber-400", text: "text-amber-300",
+          label: "Ожидание", dot: "bg-amber-400",
           badge: "bg-amber-400/10 border-amber-400/30 text-amber-300",
           glow: "shadow-[0_0_8px_rgba(251,191,36,0.5)]",
         },
@@ -237,7 +250,7 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById("root")).render(<FedorovskoyeDashboard />);
+      createRoot(document.getElementById("root")).render(<FedorovskoyeDashboard />);
     </script>
   </body>
 </html>
